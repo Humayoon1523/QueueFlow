@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Clock, Sparkles, AlertCircle, CheckCircle2, History, UserCheck, Utensils, CheckCheck, ArrowRight, Download, Banknote, CreditCard, Zap } from 'lucide-react';
+import { ShoppingBag, Clock, Sparkles, AlertCircle, CheckCircle2, History, UserCheck, Utensils, CheckCheck, ArrowRight, Download, Banknote, CreditCard, Zap, Lock } from 'lucide-react';
 import UpiPaymentModal from '@/components/UpiPaymentModal';
 
 export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPrediction }) {
@@ -138,6 +138,14 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
             >
               <Download size={13} /> Install App
             </button>
+
+            <a
+              href="/manager"
+              className="btn btn-outline"
+              style={{ fontSize: '0.72rem', padding: '0.35rem 0.65rem', color: '#a5b4fc', borderColor: 'rgba(165, 180, 252, 0.35)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+            >
+              <Lock size={13} /> Staff Portal
+            </a>
           </div>
         </div>
 
