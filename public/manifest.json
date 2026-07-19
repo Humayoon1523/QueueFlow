@@ -1,0 +1,22 @@
+{
+  "name": "QueueFlow AI - Takeaway Order & Queue",
+  "short_name": "QueueFlow",
+  "description": "AI-Powered Hybrid Queue & Pre-Order System for High-Volume Takeaway Restaurants",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#4f46e5",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3448/3448609.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3448/3448609.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
