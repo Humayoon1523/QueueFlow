@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import ManagerDashboard from '@/components/ManagerDashboard';
 import TokenReceiptModal from '@/components/TokenReceiptModal';
+import StaffGuard from '@/components/StaffGuard';
 
 export default function ManagerPage() {
   const [orders, setOrders] = useState([]);
@@ -65,31 +66,33 @@ export default function ManagerPage() {
   const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
 
   return (
-    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
-      <Navbar
-        currentRole="manager"
-        setCurrentRole={handleRoleChange}
-        activeQueueCount={activeQueueCount}
-        soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-        notificationAlert={notificationAlert}
-      />
-
-      <ManagerDashboard
-        orders={orders}
-        metrics={metrics}
-        aiPrediction={aiPrediction}
-        onWalkinOrder={handleWalkinOrder}
-        onNotifyCustomer={handleNotifyCustomer}
-        onPrintReceipt={(ord) => setPrintingOrder(ord)}
-      />
-
-      {printingOrder && (
-        <TokenReceiptModal
-          order={printingOrder}
-          onClose={() => setPrintingOrder(null)}
+    <StaffGuard title="Manager POS Portal">
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
+        <Navbar
+          currentRole="manager"
+          setCurrentRole={handleRoleChange}
+          activeQueueCount={activeQueueCount}
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+          notificationAlert={notificationAlert}
         />
-      )}
-    </main>
+
+        <ManagerDashboard
+          orders={orders}
+          metrics={metrics}
+          aiPrediction={aiPrediction}
+          onWalkinOrder={handleWalkinOrder}
+          onNotifyCustomer={handleNotifyCustomer}
+          onPrintReceipt={(ord) => setPrintingOrder(ord)}
+        />
+
+        {printingOrder && (
+          <TokenReceiptModal
+            order={printingOrder}
+            onClose={() => setPrintingOrder(null)}
+          />
+        )}
+      </main>
+    </StaffGuard>
   );
 }

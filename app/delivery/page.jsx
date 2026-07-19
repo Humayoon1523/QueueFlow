@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import DeliveryDashboard from '@/components/DeliveryDashboard';
+import StaffGuard from '@/components/StaffGuard';
 
 export default function DeliveryPage() {
   const [orders, setOrders] = useState([]);
@@ -57,21 +58,23 @@ export default function DeliveryPage() {
   const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
 
   return (
-    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
-      <Navbar
-        currentRole="delivery"
-        setCurrentRole={handleRoleChange}
-        activeQueueCount={activeQueueCount}
-        soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-        notificationAlert={notificationAlert}
-      />
+    <StaffGuard title="Delivery & Kitchen Station">
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
+        <Navbar
+          currentRole="delivery"
+          setCurrentRole={handleRoleChange}
+          activeQueueCount={activeQueueCount}
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+          notificationAlert={notificationAlert}
+        />
 
-      <DeliveryDashboard
-        orders={orders}
-        metrics={metrics}
-        onUpdateStatus={handleUpdateStatus}
-      />
-    </main>
+        <DeliveryDashboard
+          orders={orders}
+          metrics={metrics}
+          onUpdateStatus={handleUpdateStatus}
+        />
+      </main>
+    </StaffGuard>
   );
 }

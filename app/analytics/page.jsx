@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import AiAnalytics from '@/components/AiAnalytics';
+import StaffGuard from '@/components/StaffGuard';
 
 export default function AnalyticsPage() {
   const [orders, setOrders] = useState([]);
@@ -38,20 +39,22 @@ export default function AnalyticsPage() {
   const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
 
   return (
-    <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
-      <Navbar
-        currentRole="analytics"
-        setCurrentRole={handleRoleChange}
-        activeQueueCount={activeQueueCount}
-        soundEnabled={soundEnabled}
-        setSoundEnabled={setSoundEnabled}
-      />
+    <StaffGuard title="AI Analytics & Forecasting">
+      <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
+        <Navbar
+          currentRole="analytics"
+          setCurrentRole={handleRoleChange}
+          activeQueueCount={activeQueueCount}
+          soundEnabled={soundEnabled}
+          setSoundEnabled={setSoundEnabled}
+        />
 
-      <AiAnalytics
-        aiPrediction={aiPrediction}
-        metrics={metrics}
-        orders={orders}
-      />
-    </main>
+        <AiAnalytics
+          aiPrediction={aiPrediction}
+          metrics={metrics}
+          orders={orders}
+        />
+      </main>
+    </StaffGuard>
   );
 }
