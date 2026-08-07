@@ -1,9 +1,29 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PackageCheck, Volume2, Play, CheckCircle, ChefHat, Sparkles, Layers } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { PackageCheck, Volume2, Play, CheckCircle, ChefHat, Sparkles, Layers, MapPin } from 'lucide-react';
 
 export default function DeliveryDashboard({ orders, metrics, onUpdateStatus }) {
+  const announcedTokensRef = useRef(new Set());
+
+  useEffect(() => {
+    orders.forEach(order => {
+      if (order.orderStatus !== 'DELIVERED' && order.isNearShop && !announcedTokensRef.current.has(order.token)) {
+        announcedTokensRef.current.add(order.token);
+        const text = `Attention delivery team! Customer for Token ${order.token}, ${order.customerName || 'Online customer'}, has arrived near the shop.`;
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          const msg = new SpeechSynthesisUtterance(text);
+          msg.rate = 0.95;
+          window.speechSynthesis.speak(msg);
+        } else {
+          console.log('TTS Alert:', text);
+        }
+      }
+      if (order.orderStatus === 'DELIVERED' && announcedTokensRef.current.has(order.token)) {
+        announcedTokensRef.current.delete(order.token);
+      }
+    });
+  }, [orders]);
   const [announcementText, setAnnouncementText] = useState('');
 
   const activeOrders = orders.filter(o => o.orderStatus !== 'DELIVERED');
@@ -139,6 +159,27 @@ export default function DeliveryDashboard({ orders, metrics, onUpdateStatus }) {
                     {order.orderStatus}
                   </span>
                 </div>
+
+                {order.isNearShop && (
+                  <div style={{ 
+                    marginTop: '0.45rem', 
+                    background: 'rgba(244, 63, 94, 0.15)', 
+                    border: '1px solid rgba(244, 63, 94, 0.4)', 
+                    borderRadius: '8px', 
+                    padding: '0.4rem 0.6rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    fontSize: '0.72rem',
+                    fontWeight: 800,
+                    color: '#fda4af',
+                    boxShadow: '0 0 12px rgba(244, 63, 94, 0.25)'
+                  }}>
+                    <span className="live-dot" style={{ background: 'var(--accent-rose)', width: '6px', height: '6px' }}></span>
+                    <MapPin size={12} style={{ color: 'var(--accent-rose)' }} />
+                    <span>CUSTOMER NEAR SHOP ({order.customerDistance || '50m'})</span>
+                  </div>
+                )}
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
                   <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '0.1rem 0.4rem', borderRadius: '4px', background: 'rgba(255,255,255,0.1)', color: '#fff' }}>

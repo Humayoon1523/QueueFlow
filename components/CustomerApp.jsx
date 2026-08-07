@@ -1,14 +1,33 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ShoppingBag, Clock, Sparkles, AlertCircle, CheckCircle2, History, UserCheck, Utensils, CheckCheck, ArrowRight, Download, Banknote, CreditCard, Zap, Lock } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { ShoppingBag, Clock, Sparkles, AlertCircle, CheckCircle2, History, UserCheck, Utensils, CheckCheck, ArrowRight, Download, Banknote, CreditCard, Zap, Lock, LogOut, MapPin, Navigation } from 'lucide-react';
 import UpiPaymentModal from '@/components/UpiPaymentModal';
+import CustomerLogin from '@/components/CustomerLogin';
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371e3; // metres
+  const phi1 = lat1 * Math.PI/180;
+  const phi2 = lat2 * Math.PI/180;
+  const deltaPhi = (lat2-lat1) * Math.PI/180;
+  const deltaLambda = (lon2-lon1) * Math.PI/180;
+
+  const a = Math.sin(deltaPhi/2) * Math.sin(deltaPhi/2) +
+            Math.cos(phi1) * Math.cos(phi2) *
+            Math.sin(deltaLambda/2) * Math.sin(deltaLambda/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+  return R * c; // in metres
+}
 
 export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPrediction }) {
   const [activeTab, setActiveTab] = useState('order');
   const [customerName, setCustomerName] = useState('Anand S.');
   const [customerPhone, setCustomerPhone] = useState('9876543210');
   
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+
   const [chapathiQty, setChapathiQty] = useState(4);
   const [chennaQty, setChennaQty] = useState(2);
   const [paymentMode, setPaymentMode] = useState('ONLINE_UPI'); // 'ONLINE_UPI', 'CARD', 'CASH_ON_PICKUP'
@@ -21,6 +40,42 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
   const [submitting, setSubmitting] = useState(false);
   const [deferredInstallPrompt, setDeferredInstallPrompt] = useState(null);
 
+  // Geolocation & Proximity States
+  const [useGps, setUseGps] = useState(false);
+  const [simNear, setSimNear] = useState(false);
+  const [gpsDistance, setGpsDistance] = useState(null);
+  const [gpsError, setGpsError] = useState('');
+  const [shopCoords, setShopCoords] = useState({ lat: 12.9716, lon: 77.5946 });
+
+  const hasInitialTabRouted = useRef(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedName = localStorage.getItem('queueflow_customer_name');
+      const storedPhone = localStorage.getItem('queueflow_customer_phone');
+      if (storedName && storedPhone) {
+        setCustomerName(storedName);
+        setCustomerPhone(storedPhone);
+        setIsLoggedIn(true);
+      }
+      
+      const storedToken = localStorage.getItem('queueflow_last_placed_token');
+      if (storedToken) {
+        const tokenNum = parseInt(storedToken, 10);
+        setLastPlacedToken(tokenNum);
+        
+        if (!hasInitialTabRouted.current && activeOrders.length > 0) {
+          const matchingActive = activeOrders.some(o => o.token === tokenNum);
+          if (matchingActive) {
+            setActiveTab('track');
+          }
+          hasInitialTabRouted.current = true;
+        }
+      }
+      setIsLoadingSession(false);
+    }
+  }, [activeOrders]);
+
   useEffect(() => {
     const handleBeforeInstall = (e) => {
       e.preventDefault();
@@ -29,6 +84,120 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
   }, []);
+
+  const handleLogin = ({ name, phone }) => {
+    localStorage.setItem('queueflow_customer_name', name);
+    localStorage.setItem('queueflow_customer_phone', phone);
+    setCustomerName(name);
+    setCustomerPhone(phone);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('queueflow_customer_name');
+    localStorage.removeItem('queueflow_customer_phone');
+    localStorage.removeItem('queueflow_last_placed_token');
+    setCustomerName('');
+    setCustomerPhone('');
+    setLastPlacedToken(null);
+    setIsLoggedIn(false);
+    setActiveTab('order');
+  };
+
+  // Find customer active tracked order
+  const trackedOrder = activeOrders.find(o => o.token === lastPlacedToken) || activeOrders[0];
+
+  // Proximity notification logic
+  useEffect(() => {
+    if (!lastPlacedToken || !trackedOrder || trackedOrder.orderStatus === 'DELIVERED') return;
+
+    let watchId = null;
+
+    const reportProximity = async (isNear, distanceStr) => {
+      try {
+        await fetch('/api/orders/proximity', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: trackedOrder.id,
+            isNear,
+            distance: distanceStr
+          })
+        });
+      } catch (err) {
+        console.error('Failed to report proximity:', err);
+      }
+    };
+
+    if (useGps) {
+      if ('geolocation' in navigator) {
+        watchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            const dist = calculateDistance(latitude, longitude, shopCoords.lat, shopCoords.lon);
+            setGpsDistance(dist);
+            setGpsError('');
+
+            const isNear = dist < 100;
+            const distText = dist < 1000 ? `${Math.round(dist)}m` : `${(dist / 1000).toFixed(2)}km`;
+            reportProximity(isNear, distText);
+          },
+          (err) => {
+            console.error('GPS tracking error:', err);
+            setGpsError('GPS permission denied or unavailable.');
+            setUseGps(false);
+          },
+          { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+      } else {
+        setGpsError('Geolocation not supported by browser.');
+        setUseGps(false);
+      }
+    } else {
+      const isNear = simNear;
+      const distText = isNear ? '50m' : '2.5km';
+      reportProximity(isNear, distText);
+    }
+
+    return () => {
+      if (watchId) navigator.geolocation.clearWatch(watchId);
+    };
+  }, [useGps, simNear, trackedOrder, shopCoords]);
+
+  const handleSetShopToCurrent = () => {
+    if ('geolocation' in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          setShopCoords({ lat: latitude, lon: longitude });
+          setUseGps(true);
+          alert(`Shop location set to your current GPS position: ${latitude.toFixed(5)}, ${longitude.toFixed(5)}. You are now 0m away!`);
+        },
+        (err) => {
+          alert('Failed to get current GPS location. Please check permissions.');
+        }
+      );
+    }
+  };
+
+  // Client-Side Localized Auto-ETA Calculation
+  const getClientTimes = () => {
+    const waitMinutes = aiPrediction?.estimatedWaitMinutes || 8;
+    const now = new Date();
+    
+    const pickupDt = new Date(now.getTime() + waitMinutes * 60000);
+    const arrivalDt = new Date(now.getTime() + Math.max(1, waitMinutes - 5) * 60000);
+    
+    const formatTime = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    return {
+      estimatedPickupTime: formatTime(pickupDt),
+      suggestedArrivalTime: formatTime(arrivalDt),
+      customerMessage: `Estimated Pickup: ${formatTime(pickupDt)}. Please arrive around ${formatTime(arrivalDt)} to prevent roadside vehicle congestion.`
+    };
+  };
+
+  const clientTimes = getClientTimes();
 
   const chapathiPrice = 15;
   const chennaPrice = 30;
@@ -72,6 +241,7 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
       const data = await res.json();
       if (res.ok && data.order) {
         setLastPlacedToken(data.order.token);
+        localStorage.setItem('queueflow_last_placed_token', data.order.token.toString());
         onPlaceOrder(data.order);
         setShowUpiModal(false);
         setActiveTab('track');
@@ -98,7 +268,6 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
     }
   };
 
-  const trackedOrder = activeOrders.find(o => o.token === lastPlacedToken) || activeOrders[0];
   const historyOrders = activeOrders.filter(o => o.orderStatus === 'DELIVERED');
 
   const eta = aiPrediction?.etaRecommendation || {
@@ -106,6 +275,21 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
     suggestedArrivalTime: '6:37 PM',
     customerMessage: 'Please arrive 5 minutes before pickup time to prevent roadside traffic congestion.'
   };
+
+  if (isLoadingSession) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'center', color: '#ffffff', background: 'var(--bg-dark)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <span className="live-dot"></span>
+          <span style={{ fontSize: '0.85rem', fontWeight: 700, letterSpacing: '0.05em', color: 'var(--accent-cyan)' }}>SYNCING TAKEAWAY SESSION...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isLoggedIn) {
+    return <CustomerLogin onLogin={handleLogin} />;
+  }
 
   return (
     <div style={{ width: '100%', maxWidth: '640px', margin: '0 auto', padding: '0 0 4rem 0' }}>
@@ -130,6 +314,15 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
               <UserCheck size={14} />
               <span>{customerName}</span>
             </div>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="btn btn-outline"
+              style={{ padding: '0.35rem', fontSize: '0.72rem', color: 'var(--accent-rose)', borderColor: 'rgba(244, 63, 94, 0.2)' }}
+              title="Log Out / Change Profile"
+            >
+              <LogOut size={13} />
+            </button>
 
             <button
               onClick={handlePwaInstall}
@@ -166,7 +359,7 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
               AI QUEUE ETA: ~{aiPrediction?.estimatedWaitMinutes || 8} MINS WAIT
             </div>
             <div style={{ fontSize: '0.72rem', color: '#cbd5e1', marginTop: '0.1rem' }}>
-              Suggested Arrival: <strong>{eta.suggestedArrivalTime}</strong> for fast pickup
+              Suggested Arrival: <strong>{clientTimes.suggestedArrivalTime}</strong> for fast pickup
             </div>
           </div>
         </div>
@@ -509,8 +702,103 @@ export default function CustomerApp({ menu, onPlaceOrder, activeOrders, aiPredic
                     <span>AI SMART PICKUP GUIDANCE</span>
                   </div>
                   <p style={{ fontSize: '0.78rem', color: '#e2e8f0', marginTop: '0.3rem' }}>
-                    {eta.customerMessage}
+                    {clientTimes.customerMessage}
                   </p>
+                </div>
+
+                {/* Geolocation Proximity Widget */}
+                <div style={{
+                  marginTop: '0.85rem',
+                  padding: '0.85rem',
+                  background: 'rgba(15, 23, 42, 0.75)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '12px',
+                  textAlign: 'left'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: 'var(--accent-cyan)', fontSize: '0.82rem', fontWeight: 800 }}>
+                      <MapPin size={15} />
+                      <span>📍 LIVE PROXIMITY TRACKER</span>
+                    </div>
+                    <span className="badge badge-preparing" style={{ fontSize: '0.62rem', padding: '0.1rem 0.4rem' }}>
+                      {useGps ? 'GPS ACTIVE' : 'SIMULATOR ACTIVE'}
+                    </span>
+                  </div>
+
+                  {useGps ? (
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.6rem' }}>
+                      {gpsError ? (
+                        <div style={{ color: 'var(--accent-rose)' }}>⚠️ {gpsError}</div>
+                      ) : (
+                        <div>
+                          Restaurant Location: <code>{shopCoords.lat.toFixed(4)}, {shopCoords.lon.toFixed(4)}</code>
+                          <br />
+                          Distance: <strong style={{ color: '#ffffff', fontSize: '0.95rem' }}>
+                            {gpsDistance !== null ? (gpsDistance < 1000 ? `${Math.round(gpsDistance)}m` : `${(gpsDistance / 1000).toFixed(2)}km`) : 'Calculating...'}
+                          </strong>
+                          {gpsDistance !== null && gpsDistance < 100 && (
+                            <span style={{ color: 'var(--accent-emerald)', marginLeft: '0.45rem', fontWeight: 800 }}>
+                              (Near Shop! Alerted Delivery Team)
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.6rem' }}>
+                      Simulation Status: <strong style={{ color: simNear ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>
+                        {simNear ? 'Near Shop (50m)' : 'Far Away (2.5km)'}
+                      </strong>
+                      {simNear && (
+                        <span style={{ color: 'var(--accent-emerald)', marginLeft: '0.45rem', fontWeight: 800 }}>
+                          (Near Shop! Alerted Delivery Team)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Simulator Controls */}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.5rem', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setUseGps(!useGps)}
+                      className={`btn ${useGps ? 'btn-primary' : 'btn-outline'}`}
+                      style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem' }}
+                    >
+                      {useGps ? 'Switch to Simulator' : 'Use Live GPS'}
+                    </button>
+
+                    {!useGps ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setSimNear(true)}
+                          className={`btn ${simNear ? 'btn-emerald' : 'btn-outline'}`}
+                          style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem' }}
+                        >
+                          Simulate Near Shop
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSimNear(false)}
+                          className={`btn ${!simNear ? 'btn-primary' : 'btn-outline'}`}
+                          style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem' }}
+                        >
+                          Simulate Far
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSetShopToCurrent}
+                        className="btn btn-outline"
+                        style={{ fontSize: '0.7rem', padding: '0.35rem 0.65rem', borderColor: 'var(--accent-indigo)' }}
+                        title="Sets the restaurant coordinates to your current position so you are 0m away!"
+                      >
+                        📍 Pin Shop Here
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div style={{

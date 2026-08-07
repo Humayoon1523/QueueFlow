@@ -1,0 +1,112 @@
+{
+  "tokenCounter": 103,
+  "menu": [
+    {
+      "id": "m1",
+      "name": "Special Hot Chapathi",
+      "category": "Main",
+      "price": 15,
+      "available": true,
+      "image": "🫓"
+    },
+    {
+      "id": "m2",
+      "name": "Spicy Chenna Gravy",
+      "category": "Side",
+      "price": 30,
+      "available": true,
+      "image": "🥘"
+    },
+    {
+      "id": "m3",
+      "name": "Chapathi & Chenna Combo (3+1)",
+      "category": "Combo",
+      "price": 70,
+      "available": true,
+      "image": "🍱"
+    },
+    {
+      "id": "m4",
+      "name": "Sweet Lassi",
+      "category": "Beverage",
+      "price": 25,
+      "available": true,
+      "image": "🥛"
+    }
+  ],
+  "orders": [
+    {
+      "id": "ord-100",
+      "token": 100,
+      "customerId": "u0",
+      "customerName": "Sanjay M.",
+      "customerPhone": "9123456789",
+      "orderType": "ONLINE",
+      "chapathiQty": 5,
+      "chennaQty": 2,
+      "totalAmount": 135,
+      "paymentMode": "ONLINE_UPI",
+      "paymentStatus": "COMPLETED",
+      "orderStatus": "DELIVERED",
+      "assignedStaff": "Delivery/Packing Lead",
+      "createdAt": "2026-08-07T16:11:15.316Z",
+      "updatedAt": "2026-08-07T16:31:15.318Z",
+      "completedAt": "2026-08-07T16:31:15.319Z",
+      "notifiedCustomer": true
+    },
+    {
+      "id": "ord-101",
+      "token": 101,
+      "customerId": "u1",
+      "customerName": "Rahul Kumar",
+      "customerPhone": "9876543210",
+      "orderType": "ONLINE",
+      "chapathiQty": 6,
+      "chennaQty": 2,
+      "totalAmount": 150,
+      "paymentMode": "ONLINE_UPI",
+      "paymentStatus": "COMPLETED",
+      "orderStatus": "READY",
+      "assignedStaff": "Delivery/Packing Lead",
+      "createdAt": "2026-08-07T16:41:15.319Z",
+      "updatedAt": "2026-08-07T16:54:15.319Z",
+      "notifiedCustomer": true
+    },
+    {
+      "id": "ord-102",
+      "token": 102,
+      "customerId": null,
+      "customerName": "Walk-in (Priya)",
+      "customerPhone": "9988776655",
+      "orderType": "WALKIN",
+      "chapathiQty": 10,
+      "chennaQty": 3,
+      "totalAmount": 240,
+      "paymentMode": "CASH",
+      "paymentStatus": "COMPLETED",
+      "orderStatus": "PREPARING",
+      "assignedStaff": "Delivery/Packing Lead",
+      "createdAt": "2026-08-07T16:48:15.319Z",
+      "updatedAt": "2026-08-07T16:48:15.319Z",
+      "notifiedCustomer": false
+    },
+    {
+      "id": "ord-103",
+      "token": 103,
+      "customerId": "u2",
+      "customerName": "Arun V.",
+      "customerPhone": "9776655443",
+      "orderType": "ONLINE",
+      "chapathiQty": 4,
+      "chennaQty": 1,
+      "totalAmount": 90,
+      "paymentMode": "CARD",
+      "paymentStatus": "COMPLETED",
+      "orderStatus": "PENDING",
+      "assignedStaff": "Delivery/Packing Lead",
+      "createdAt": "2026-08-07T16:54:15.319Z",
+      "updatedAt": "2026-08-07T16:54:15.319Z",
+      "notifiedCustomer": false
+    }
+  ]
+}
