@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import ManagerDashboard from '@/components/ManagerDashboard';
 import TokenReceiptModal from '@/components/TokenReceiptModal';
 import StaffGuard from '@/components/StaffGuard';
 
 export default function ManagerPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [aiPrediction, setAiPrediction] = useState(null);
@@ -35,14 +37,8 @@ export default function ManagerPage() {
   }, []);
 
   const handleRoleChange = (role) => {
-    if (role === 'delivery') window.location.href = '/delivery';
-    else if (role === 'analytics') window.location.href = '/analytics';
-  };
-
-  const handleWalkinOrder = (newOrder) => {
-    setNotificationAlert(`Walk-in Token #${newOrder.token} Issued!`);
-    setTimeout(() => setNotificationAlert(null), 4000);
-    fetchState();
+    if (role === 'delivery') router.push('/delivery');
+    else if (role === 'analytics') router.push('/analytics');
   };
 
   const handleNotifyCustomer = async (orderId) => {
@@ -53,7 +49,7 @@ export default function ManagerPage() {
         body: JSON.stringify({ orderId })
       });
       const data = await res.json();
-      if (res.ok) {
+      if (res.ok && data.order) {
         setNotificationAlert(`Alert sent for Token #${data.order.token}`);
         setTimeout(() => setNotificationAlert(null), 4000);
         fetchState();
@@ -63,10 +59,10 @@ export default function ManagerPage() {
     }
   };
 
-  const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
+  const activeQueueCount = orders.filter(o => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED').length;
 
   return (
-    <StaffGuard title="Manager POS Portal">
+    <StaffGuard title="Manager Central Operations">
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
         <Navbar
           currentRole="manager"
@@ -81,9 +77,9 @@ export default function ManagerPage() {
           orders={orders}
           metrics={metrics}
           aiPrediction={aiPrediction}
-          onWalkinOrder={handleWalkinOrder}
           onNotifyCustomer={handleNotifyCustomer}
           onPrintReceipt={(ord) => setPrintingOrder(ord)}
+          onRefresh={fetchState}
         />
 
         {printingOrder && (

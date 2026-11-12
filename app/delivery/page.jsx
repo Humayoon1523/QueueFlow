@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import DeliveryDashboard from '@/components/DeliveryDashboard';
 import StaffGuard from '@/components/StaffGuard';
 
 export default function DeliveryPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [soundEnabled, setSoundEnabled] = useState(true);
@@ -20,7 +22,7 @@ export default function DeliveryPage() {
         setMetrics(data.metrics || null);
       }
     } catch (err) {
-      console.error('Failed to fetch delivery data:', err);
+      console.error('Failed to fetch kitchen data:', err);
     }
   };
 
@@ -31,8 +33,8 @@ export default function DeliveryPage() {
   }, []);
 
   const handleRoleChange = (role) => {
-    if (role === 'manager') window.location.href = '/manager';
-    else if (role === 'analytics') window.location.href = '/analytics';
+    if (role === 'manager') router.push('/manager');
+    else if (role === 'analytics') router.push('/analytics');
   };
 
   const handleUpdateStatus = async (orderId, action) => {
@@ -45,7 +47,7 @@ export default function DeliveryPage() {
       const data = await res.json();
       if (res.ok && data.order) {
         if (data.order.orderStatus === 'READY') {
-          setNotificationAlert(`TOKEN #${data.order.token} IS READY!`);
+          setNotificationAlert(`TOKEN #${data.order.token} IS READY FOR HANDOVER!`);
           setTimeout(() => setNotificationAlert(null), 4000);
         }
         fetchState();
@@ -55,10 +57,10 @@ export default function DeliveryPage() {
     }
   };
 
-  const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
+  const activeQueueCount = orders.filter(o => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED').length;
 
   return (
-    <StaffGuard title="Delivery & Kitchen Station">
+    <StaffGuard title="Kitchen & Packing Operations">
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
         <Navbar
           currentRole="delivery"

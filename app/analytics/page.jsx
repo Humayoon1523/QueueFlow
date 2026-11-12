@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Navbar from '@/components/Navbar';
 import AiAnalytics from '@/components/AiAnalytics';
 import StaffGuard from '@/components/StaffGuard';
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const [orders, setOrders] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [aiPrediction, setAiPrediction] = useState(null);
@@ -32,14 +34,14 @@ export default function AnalyticsPage() {
   }, []);
 
   const handleRoleChange = (role) => {
-    if (role === 'manager') window.location.href = '/manager';
-    else if (role === 'delivery') window.location.href = '/delivery';
+    if (role === 'manager') router.push('/manager');
+    else if (role === 'delivery') router.push('/delivery');
   };
 
-  const activeQueueCount = orders.filter(o => o.orderStatus !== 'DELIVERED').length;
+  const activeQueueCount = orders.filter(o => o.orderStatus !== 'COMPLETED' && o.orderStatus !== 'CANCELLED').length;
 
   return (
-    <StaffGuard title="AI Analytics & Forecasting">
+    <StaffGuard title="AI Analytics & Demand Forecasting">
       <main style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 0.5rem' }}>
         <Navbar
           currentRole="analytics"
